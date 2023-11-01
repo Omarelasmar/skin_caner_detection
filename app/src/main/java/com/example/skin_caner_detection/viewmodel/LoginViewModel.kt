@@ -39,7 +39,7 @@ class LoginViewModel @Inject constructor(
             }
             .addOnFailureListener {
                 viewModelScope.launch {
-                    _login.emit(NetworkResult.Error(it.message.toString()))
+                    _login.emit(NetworkResult.Error("Invalid Email Or Password"))
                 }
             }
 
