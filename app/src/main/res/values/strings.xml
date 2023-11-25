@@ -13,4 +13,8 @@
     <string name="can_not_analyze_image">Can\'t analyze image</string>
     <string name="no_cancer">No Cancer</string>
     <string name="performing_diagnosis">Performing diagnosis…</string>
+    <string name="malignant_cancer">Malignant Cancer</string>
+    <string name="benign_cancer">Benign Cancer</string>
+    <string name="loading_model">Loading model...</string>
+    <string name="restart_the_app_to_reload_the_model">Restart the app to reload the model</string>
 </resources>
