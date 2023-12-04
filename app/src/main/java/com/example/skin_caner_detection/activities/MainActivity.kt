@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
                 contentResolver.openInputStream(imageUri!!)?.let {
                     val rawImage = BitmapFactory.decodeStream(it)
                     val rotation = ModelUtils.getScreenOrientation(this)
-                    detector?.detect(rawImage, rotation)
+                    detector?.detect(imageUri!!.path, rawImage, rotation)
                     it.close()
                 }
             } else Toast.makeText(this, "Upload an image first", Toast.LENGTH_SHORT).show()

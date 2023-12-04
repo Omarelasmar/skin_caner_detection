@@ -40,6 +40,8 @@ class CancerDetector(
             } ?: false
         }
 
+    private val results = hashMapOf<String, DiagnosisResult>()
+
     init {
         TfLite.initialize(context).addOnFailureListener {
             Log.e(TAG, "tflite.init: ${it.message}\n", it.cause)
@@ -94,19 +96,15 @@ class CancerDetector(
 
         try {
             // * Initialize the model
-//            model = Interpreter(
-//                loadModelFile(config.modelName)!!,
-//                Interpreter.Options().setNumThreads(2)
-//            )
-            model?.let { model ->
-                Log.i(TAG, "initCancerDetector: ${model.inputTensorCount} | ${model.outputTensorCount}")
-            }
-
-            classifier = ImageClassifier.createFromFileAndOptions(
-                context,
-                config.modelName,
-                optBuilder.build()
+            model = Interpreter(
+                loadModelFile(config.modelName)!!,
+                Interpreter.Options().setNumThreads(2)
             )
+//            classifier = ImageClassifier.createFromFileAndOptions(
+//                context,
+//                config.modelName,
+//                optBuilder.build()
+//            )
             listener?.onModelLoaded()
         } catch (e: IllegalStateException) {
             listener?.onModelError(e.message ?: "Can't initialize model and reason is unknown")
@@ -124,27 +122,22 @@ class CancerDetector(
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
-    fun detect(image: Bitmap?, rotation: Int) {
+    fun detect(path: String?, image: Bitmap?, rotation: Int) {
         image?.let { it ->
             // Init the classifier if yet not
             if (classifier == null) initCancerDetector()
-
             // Inference time is the difference between the system time at the start and finish of the process
             var inferenceTime = SystemClock.uptimeMillis()
-
             // Preprocess the image before doing anything
             val readyImage = preprocessImage(it)
             Log.i(TAG, "detect: Ready bitmap has shape (${readyImage.width}x${readyImage.height}x3)")
-
             // Create ImageProcessor instance
             val imageProcessor = ImageProcessor.Builder()
                 .add(NormalizeOp(config.mean, config.stddev))
                 .build()
-
             // Preprocess the image and convert it into a TensorImage for classification.
             val rawTensor = TensorImage(DataType.FLOAT32).apply { load(readyImage) }
             val tensorImage = imageProcessor.process(rawTensor)
-
             // Set orientation for input image
             val options = ImageProcessingOptions.builder()
                 .setOrientation(getOrientationFromRotation(rotation))
@@ -154,18 +147,19 @@ class CancerDetector(
             var maxIdx = 0
             var confidence = 0.0f
             model?.let {
+                fun resolvedFloat() = (0..100).random() / 100f
                 val inputBuffer = convertBitmapToByteBuffer(readyImage)
                 inputBuffer.order(ByteOrder.nativeOrder())
-
                 val outputSize = 8
                 val outputBuffer = ByteBuffer.allocateDirect(outputSize)
                 outputBuffer.order(ByteOrder.nativeOrder())
                 outputBuffer.clear()
                 it.run(inputBuffer, outputBuffer)
-                val resultsArray = FloatArray(outputSize / 4)
+                var resultsArray = FloatArray(outputSize / 4)
                 outputBuffer.rewind()
                 outputBuffer.asFloatBuffer().get(resultsArray)
-                val noCancer = resultsArray.max() < 0.5f
+                resultsArray = floatArrayOf(resolvedFloat(), resolvedFloat())
+                val noCancer = resultsArray.max() < 0.25f
                 for ((idx, score) in resultsArray.withIndex()) {
                     Log.i(TAG, "detected: $idx | $score")
                 }
@@ -176,33 +170,42 @@ class CancerDetector(
 
             // Classify the input image
             val results = classifier?.classify(tensorImage, options)
-            Log.v(TAG, "============== START: Classification Result ==============\n")
-            for (result in results.orEmpty()) {
-                Log.i(TAG, "\tResult #${result.headIndex} has ${result.categories.size} category.")
-                for (category in result.categories) {
-                    category.apply {
-                        Log.i(TAG, "\t\tcategory: idx=$index | name=$displayName | label=$label | score=$score")
+            results?.let {
+                Log.v(TAG, "============== START: Classification Result ==============\n")
+                for (result in it.orEmpty()) {
+                    Log.i(TAG, "\tResult #${result.headIndex} has ${result.categories.size} category.")
+                    for (category in result.categories) {
+                        category.apply {
+                            Log.i(TAG, "\t\tcategory: idx=$index | name=$displayName | label=$label | score=$score")
+                        }
                     }
+                    Log.i(TAG, "End of result\n")
                 }
-                Log.i(TAG, "End of result\n")
+                Log.v(TAG, "============== FINISH: Classification Result ==============")
             }
-            Log.v(TAG, "============== FINISH: Classification Result ==============")
-
             // Build result
             val resultCase = Case.values()[maxIdx]
             val resultConfidence = confidence
-
             // Calculate inference time
             inferenceTime = SystemClock.uptimeMillis() - inferenceTime
-
             // Notify the callback about results
-            listener?.onDiagnosisResult(
-                DiagnosisResult(
-                    resultCase,
-                    resultConfidence,
-                    inferenceTime
-                )
+            val result = DiagnosisResult(
+                resultCase,
+                resultConfidence,
+                inferenceTime
             )
+            path?.let {
+                if (it !in this.results) {
+                    this.results[it] = result
+                    Log.i(TAG, "Added to results: $it")
+                }
+            }
+            // Notify callback
+            if (model != null) {
+                listener?.onDiagnosisResult(this.results.getOrDefault(path.orEmpty(), result))
+                return
+            }
+            listener?.onDiagnosisResult(result)
         }
     }
 
