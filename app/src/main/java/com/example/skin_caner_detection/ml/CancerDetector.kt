@@ -45,6 +45,8 @@ class CancerDetector(
             Log.e(TAG, "tflite.init: ${it.message}\n", it.cause)
         }.addOnSuccessListener {
             initCancerDetector()
+        }.addOnFailureListener {
+            Log.e(TAG, "tflite.init: $it")
         }.addOnCanceledListener {
             Log.i(TAG, "tflite.init: Cancelled")
         }
@@ -100,10 +102,10 @@ class CancerDetector(
                 Log.i(TAG, "initCancerDetector: ${model.inputTensorCount} | ${model.outputTensorCount}")
             }
 
-            classifier = ImageClassifier.createFromFile(
+            classifier = ImageClassifier.createFromFileAndOptions(
                 context,
                 config.modelName,
-//                optBuilder.build()
+                optBuilder.build()
             )
             listener?.onModelLoaded()
         } catch (e: IllegalStateException) {
