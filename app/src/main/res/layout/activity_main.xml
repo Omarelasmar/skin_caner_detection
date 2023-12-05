@@ -4,49 +4,73 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background"
+    android:theme="@style/Theme.Skin_caner_detection"
     tools:context=".activities.MainActivity">
 
-
-    <ImageView
+    <androidx.constraintlayout.utils.widget.ImageFilterView
         android:id="@+id/image"
+        android:layout_marginBottom="30dp"
         android:layout_width="@dimen/_240sdp"
-        android:layout_height="@dimen/_200sdp"
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/cancer_diagnosis"
+        android:layout_height="@dimen/_250sdp"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toTopOf="@id/tvStatus"
         android:layout_marginTop="@dimen/_24sdp"
+        app:round="15dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        tools:src="@tools:sample/avatars" />
 
-
-    <com.google.android.material.chip.Chip
-        android:id="@+id/chip_cancer"
-        style="@style/h4"
-        android:layout_width="wrap_content"
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/tvStatus"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:textColor="@color/adaptive_normal_text"
         android:layout_marginBottom="12dp"
-        android:text="Cancer"
-        android:textColor="@color/white"
-        android:textSize="@dimen/_16ssp"
-        android:backgroundTint="@color/background_buttom_card"
-        app:layout_constraintBottom_toTopOf="@+id/appCompatButton"
+        android:layout_marginTop="100dp"
+        android:text="@string/upload_image_using_btn_below"
+        android:textAlignment="center"
+        android:textSize="@dimen/_14ssp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="@+id/image"
-        app:layout_constraintHorizontal_bias="0.495"
         app:layout_constraintStart_toStartOf="@+id/image" />
 
-    <Button
-        android:id="@+id/appCompatButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="328dp"
-        android:background="@drawable/black_background"
-        android:fontFamily="@font/archivo_semibold"
-        android:text=" Upload Image  "
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_diagnosis"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="10dp"
+        android:text="@string/diagnosis"
+        android:textAllCaps="false"
         android:textColor="@color/white"
-        android:textSize="@dimen/_11ssp"
-        app:backgroundTint="@null"
+        android:textSize="@dimen/_13ssp"
+        app:backgroundTint="@color/material_dynamic_secondary40"
+        app:cornerRadius="10dp"
+        app:layout_constraintBottom_toTopOf="@id/btn_upload_image"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_upload_image"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_marginStart="30dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="40dp"
+        android:text="@string/upload_image"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="@dimen/_13ssp"
+        app:backgroundTint="@color/material_dynamic_primary40"
+        app:cornerRadius="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.893"
         app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

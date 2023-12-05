@@ -2,5 +2,19 @@
     <string name="app_name">Skin Cancer </string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="sign_in">Sign In</string>
+    <string name="sign_in">SignIn</string>
+    <string name="cancer">Cancer</string>
+    <string name="cancer_detected">Cancer detected</string>
+    <string name="upload_image">Upload Image</string>
+    <string name="diagnosis">Diagnosis</string>
+    <string name="upload_image_using_btn_below">Use the button below to upload an image</string>
+    <string name="cancer_diagnosis">Cancer Diagnosis</string>
+    <string name="diagnosis_uploaded_image">Use the button below to start diagnosis</string>
+    <string name="can_not_analyze_image">Can\'t analyze image</string>
+    <string name="no_cancer">No Cancer</string>
+    <string name="performing_diagnosis">Performing diagnosis…</string>
+    <string name="malignant_cancer">Malignant Cancer</string>
+    <string name="benign_cancer">Benign Cancer</string>
+    <string name="loading_model">Loading model...</string>
+    <string name="restart_the_app_to_reload_the_model">Restart the app to reload the model</string>
 </resources>
