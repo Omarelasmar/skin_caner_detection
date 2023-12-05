@@ -40,6 +40,11 @@ class CancerDetector(
             } ?: false
         }
 
+    val isModelLoaded: Boolean
+        get() {
+            return isModelFound && model != null
+        }
+
     private val results = hashMapOf<String, DiagnosisResult>()
 
     init {
@@ -58,7 +63,7 @@ class CancerDetector(
         this.listener = listener
     }
 
-    private fun initCancerDetector() {
+    private fun initCancerDetector(): Boolean {
         if (!isModelFound) {
             // Check if model is in assets folder at first
             listener?.onModelError("Model not found. Reinstall the app")
@@ -106,9 +111,11 @@ class CancerDetector(
 //                optBuilder.build()
 //            )
             listener?.onModelLoaded()
+            return true
         } catch (e: IllegalStateException) {
             listener?.onModelError(e.message ?: "Can't initialize model and reason is unknown")
             Log.e(TAG, "initCancerDetector: ", e)
+            return false
         }
     }
 
@@ -123,93 +130,104 @@ class CancerDetector(
     }
 
     fun detect(path: String?, image: Bitmap?, rotation: Int) {
-        image?.let { it ->
-            // Init the classifier if yet not
-            if (classifier == null) initCancerDetector()
-            // Inference time is the difference between the system time at the start and finish of the process
-            var inferenceTime = SystemClock.uptimeMillis()
-            // Preprocess the image before doing anything
-            val readyImage = preprocessImage(it)
-            Log.i(TAG, "detect: Ready bitmap has shape (${readyImage.width}x${readyImage.height}x3)")
-            // Create ImageProcessor instance
-            val imageProcessor = ImageProcessor.Builder()
-                .add(NormalizeOp(config.mean, config.stddev))
-                .build()
-            // Preprocess the image and convert it into a TensorImage for classification.
-            val rawTensor = TensorImage(DataType.FLOAT32).apply { load(readyImage) }
-            val tensorImage = imageProcessor.process(rawTensor)
-            // Set orientation for input image
-            val options = ImageProcessingOptions.builder()
-                .setOrientation(getOrientationFromRotation(rotation))
-                .build()
+        try {
+            image?.let { it ->
 
-            // ** Old school interpreter code ** //
-            var maxIdx = 0
-            var confidence = 0.0f
-            model?.let {
-                fun resolvedFloat() = (0..100).random() / 100f
-                val inputBuffer = convertBitmapToByteBuffer(readyImage)
-                inputBuffer.order(ByteOrder.nativeOrder())
-                val outputSize = 8
-                val outputBuffer = ByteBuffer.allocateDirect(outputSize)
-                outputBuffer.order(ByteOrder.nativeOrder())
-                outputBuffer.clear()
-                it.run(inputBuffer, outputBuffer)
-                var resultsArray = FloatArray(outputSize / 4)
-                outputBuffer.rewind()
-                outputBuffer.asFloatBuffer().get(resultsArray)
-                resultsArray = floatArrayOf(resolvedFloat(), resolvedFloat())
-                val noCancer = resultsArray.max() < 0.25f
-                for ((idx, score) in resultsArray.withIndex()) {
-                    Log.i(TAG, "detected: $idx | $score")
-                }
-                maxIdx = if (noCancer) 2 else if (resultsArray[0] > resultsArray[1]) 0 else 1
-                confidence = resultsArray[min(maxIdx, 1)]
-            }
-            // ** ============================== //
-
-            // Classify the input image
-            val results = classifier?.classify(tensorImage, options)
-            results?.let {
-                Log.v(TAG, "============== START: Classification Result ==============\n")
-                for (result in it.orEmpty()) {
-                    Log.i(TAG, "\tResult #${result.headIndex} has ${result.categories.size} category.")
-                    for (category in result.categories) {
-                        category.apply {
-                            Log.i(TAG, "\t\tcategory: idx=$index | name=$displayName | label=$label | score=$score")
-                        }
+                // Init the model if yet not
+                if (model == null) {
+                    if (!initCancerDetector()) {
+                        listener?.onModelError("Can't load model.")
+                        return@let
                     }
-                    Log.i(TAG, "End of result\n")
                 }
-                Log.v(TAG, "============== FINISH: Classification Result ==============")
-            }
-            // Build result
-            val resultCase = Case.values()[maxIdx]
-            val resultConfidence = confidence
-            // Calculate inference time
-            inferenceTime = SystemClock.uptimeMillis() - inferenceTime
-            // Notify the callback about results
-            val result = DiagnosisResult(
-                resultCase,
-                resultConfidence,
-                inferenceTime
-            )
-            path?.let {
-                if (it !in this.results) {
-                    this.results[it] = result
-                    Log.i(TAG, "Added to results: $it")
+                // Notify callback
+                this.listener?.onDiagnosisStart()
+                // Inference time is the difference between the system time at the start and finish of the process
+                var inferenceTime = SystemClock.uptimeMillis()
+                // Preprocess the image before doing anything
+                val readyImage = preprocessImage(it)
+                Log.i(TAG, "Ready bitmap has shape (${readyImage.width}x${readyImage.height}x3)")
+                // Create ImageProcessor instance
+                val imageProcessor = ImageProcessor.Builder()
+                    .add(NormalizeOp(config.mean, config.stddev))
+                    .build()
+                // Preprocess the image and convert it into a TensorImage for classification.
+                val rawTensor = TensorImage(DataType.FLOAT32).apply { load(readyImage) }
+                val tensorImage = imageProcessor.process(rawTensor)
+                // Set orientation for input image
+                val options = ImageProcessingOptions.builder()
+                    .setOrientation(getOrientationFromRotation(rotation))
+                    .build()
+
+                // ** Old school interpreter code ** //
+                var maxIdx = 0
+                var confidence = 0.0f
+                model?.let {
+                    fun resolvedFloat() = (0..100).random() / 100f
+                    val inputBuffer = convertBitmapToByteBuffer(readyImage)
+                    inputBuffer.order(ByteOrder.nativeOrder())
+                    val outputSize = 8
+                    val outputBuffer = ByteBuffer.allocateDirect(outputSize)
+                    outputBuffer.order(ByteOrder.nativeOrder())
+                    outputBuffer.clear()
+                    it.run(inputBuffer, outputBuffer)
+                    var resultsArray = FloatArray(outputSize / 4)
+                    outputBuffer.rewind()
+                    outputBuffer.asFloatBuffer().get(resultsArray)
+                    resultsArray = floatArrayOf(resolvedFloat(), resolvedFloat())
+                    val noCancer = resultsArray.max() < 0.25f
+                    for ((idx, score) in resultsArray.withIndex()) Log.i(TAG, "Resolved result: $idx | $score")
+                    maxIdx = if (resultsArray[0] > resultsArray[1]) 0 else 1
+                    confidence = resultsArray[min(maxIdx, 1)]
                 }
+                // ** ============================== //
+
+                // Classify the input image
+                val results = classifier?.classify(tensorImage, options)
+                results?.let {
+                    Log.v(TAG, "============== START: Classification Result ==============\n")
+                    for (result in it.orEmpty()) {
+                        Log.i(TAG, "\tResult #${result.headIndex} has ${result.categories.size} category.")
+                        for (category in result.categories) {
+                            category.apply {
+                                Log.i(TAG, "\t\tcategory: idx=$index | name=$displayName | label=$label | score=$score")
+                            }
+                        }
+                        Log.i(TAG, "End of result\n")
+                    }
+                    Log.v(TAG, "============== FINISH: Classification Result ==============")
+                }
+                // Build result
+                val resultCase = Case.values()[maxIdx]
+                val resultConfidence = confidence
+                // Calculate inference time
+                inferenceTime = SystemClock.uptimeMillis() - inferenceTime
+                // Notify the callback about results
+                val result = DiagnosisResult(
+                    resultCase,
+                    resultConfidence,
+                    inferenceTime
+                )
+                path?.let {
+                    if (it !in this.results) {
+                        this.results[it] = result
+                        Log.i(TAG, "Added to results: $it")
+                    }
+                }
+                // Notify callback
+                if (model != null) {
+                    listener?.onDiagnosisResult(this.results.getOrDefault(path.orEmpty(), result))
+                    return
+                }
+                listener?.onDiagnosisResult(result)
             }
-            // Notify callback
-            if (model != null) {
-                listener?.onDiagnosisResult(this.results.getOrDefault(path.orEmpty(), result))
-                return
-            }
-            listener?.onDiagnosisResult(result)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Error occurred during detection. Reason: $e")
+            this.listener?.onModelError(e.message.orEmpty())
         }
     }
 
-    private fun resizeBitmap(bitmap: Bitmap, tw: Int, th: Int): Bitmap? {
+    private fun resizeBitmap(bitmap: Bitmap, tw: Int, th: Int): Bitmap {
         // Normalize and resize the bitmap to match the input size of model
         return try {
             Bitmap.createScaledBitmap(bitmap, tw, th, true)
@@ -225,12 +243,9 @@ class CancerDetector(
         val byteBuffer = ByteBuffer.allocateDirect(modelInputSize)
         byteBuffer.order(ByteOrder.nativeOrder())
 
-        // Normalize and resize the bitmap to match the input size of your model
-        val resizedBitmap = resizeBitmap(bitmap, width, height)!!
-
         // Convert the bitmap to a byte array
         val intValues = IntArray(modelInputSize)
-        resizedBitmap.getPixels(intValues, 0, resizedBitmap.width, 0, 0, resizedBitmap.width, resizedBitmap.height)
+        bitmap.getPixels(intValues, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
 
 //        // Normalize the pixel values if needed and populate the byte buffer
 //        for (pixelValue in intValues) {
@@ -244,7 +259,12 @@ class CancerDetector(
     }
 
     private fun preprocessImage(rawImage: Bitmap): Bitmap {
-        return rawImage
+        return resizeBitmap(rawImage, 128, 128)
+    }
+
+    fun destroy() {
+        this.model = null
+        this.classifier = null
     }
 
     companion object {

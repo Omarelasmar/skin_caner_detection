@@ -27,7 +27,8 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
     private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
 
     private var imageUri: Uri? = null
-    private var detector: CancerDetector? = null
+    private var latestResult: DiagnosisResult? = null
+    private lateinit var detector: CancerDetector
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,18 +167,22 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
     }
 
     override fun onPause() {
-        this.detector?.setListener(null)
+        detector.setListener(null)
         super.onPause()
     }
 
     override fun onResume() {
-        this.detector?.setListener(this)
         super.onResume()
+        this.detector.setListener(this)
+        if (detector.isModelLoaded) {
+            if (imageUri != null) changeState(State.UPLOADED)
+            else changeState(State.NO_IMAGE)
+        }
     }
 
     override fun onDestroy() {
-        this.detector?.setListener(null)
-        this.detector = null
+        detector.setListener(null)
+        detector.destroy()
         super.onDestroy()
     }
 
