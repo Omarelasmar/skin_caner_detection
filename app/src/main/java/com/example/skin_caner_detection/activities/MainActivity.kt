@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
 
             State.DIAGNOSING -> {
                 binding.tvStatus.text = getString(R.string.performing_diagnosis)
-                binding.tvStatus.setTextColor(com.google.android.material.R.color.material_dynamic_secondary60.toColor())
+                binding.tvStatus.setTextColor(R.color.adaptive_normal_text.toColor())
                 binding.btnUploadImage.isEnabled = false
                 binding.btnDiagnosis.isEnabled = false
             }
