@@ -1,5 +1,8 @@
 package com.example.skin_caner_detection.di
 
+import android.app.Application
+import android.content.Context
+import com.example.skin_caner_detection.util.Constants.INTRODUCTION_KEY
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -26,4 +29,10 @@ class AppModule {
     @Singleton
     fun provideStorage() = FirebaseStorage.getInstance().reference
 
+
+    @Provides
+    @Singleton
+    fun provideIntroductionSP(
+        application: Application
+    ) = application.getSharedPreferences(INTRODUCTION_KEY, Context.MODE_PRIVATE)
 }

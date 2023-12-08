@@ -19,6 +19,7 @@ import com.example.skin_caner_detection.ml.DiagnosisListener
 import com.example.skin_caner_detection.ml.DiagnosisResult
 import com.example.skin_caner_detection.ml.ModelConfig
 import com.example.skin_caner_detection.util.ModelUtils
+import com.google.firebase.auth.FirebaseAuth
 import kotlin.time.Duration.Companion.milliseconds
 
 class MainActivity : AppCompatActivity(), DiagnosisListener {
@@ -64,6 +65,11 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
 
         // Reset UI
         changeState(State.MODEL_LOADING)
+
+        // logout from firebase
+        binding.logout.setOnClickListener {
+            logout()
+        }
     }
 
     private fun changeState(state: State) {
@@ -190,4 +196,11 @@ class MainActivity : AppCompatActivity(), DiagnosisListener {
         private val TAG = "Runner"
     }
 
+    // logout from firebase
+    private fun logout() {
+        FirebaseAuth.getInstance().signOut()
+        val intent = Intent(this, LoginRegisterActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
 }
