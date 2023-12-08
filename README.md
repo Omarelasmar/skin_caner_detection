@@ -31,9 +31,3 @@ This Android application is designed to assist users in identifying potential si
 - **Machine Learning:** Utilizes machine learning algorithms and models for image analysis and classification.
 - **Java/Kotlin:** Programming languages used for the app development.
 - **TFLite:** Model inference runtime.
-## Contact
-
-For any questions, feedback, or suggestions regarding the app, feel free to contact the development team at [typahmedsleem@gmail.com].
-
-[GitHub link]: https://github.com/typ-AhmedSleem/Skin-Cancer-Detection-app.git
-[email@example.com]: typahmedsleem@gmail.com

@@ -15,11 +15,12 @@ import androidx.navigation.fragment.findNavController
 import com.example.skin_caner_detection.R
 import com.example.skin_caner_detection.activities.MainActivity
 import com.example.skin_caner_detection.databinding.FragmentLoginBinding
+import com.example.skin_caner_detection.fragments.dialog.setUpBottomSheetDialog
 import com.example.skin_caner_detection.util.NetworkResult
 import com.example.skin_caner_detection.viewmodel.LoginViewModel
+import com.example.skin_caner_detection.viewmodel.LoginViewModel.Companion.MAIN_ACTIVITY
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -41,9 +42,29 @@ class LoginFragment : Fragment() {
 
         login()
         observeLogin()
-
+        observeResetPassword()
         binding.signUp.setOnClickListener {
             findNavController().navigate(R.id.action_loginFragment_to_registerFragment)
+        }
+
+        binding.forgotPassword.setOnClickListener {
+            setUpBottomSheetDialog {
+                viewModel.resetPassword(it)
+            }
+        }
+
+        lifecycleScope.launchWhenStarted {
+            viewModel.navigateState.collect{
+                when(it){
+                    MAIN_ACTIVITY -> {
+                        Intent(requireActivity(), MainActivity::class.java).also { intent ->
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        }
+                    }
+                    else -> {Unit}
+                }
+            }
         }
     }
 
@@ -96,6 +117,34 @@ class LoginFragment : Fragment() {
             }
         }
 
+    }
+
+    private fun observeResetPassword() {
+          lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.resetPassword.collectLatest {
+                    when (it) {
+                        is NetworkResult.Loading -> {
+                            //do nothing
+                        }
+
+                        is NetworkResult.Success -> {
+                            Snackbar.make(
+                                binding.root,
+                                "Password reset email sent",
+                                Snackbar.LENGTH_SHORT
+                            ).show()
+                        }
+
+                        is NetworkResult.Error -> {
+                            Toast.makeText(requireContext(), it.message, Toast.LENGTH_SHORT).show()
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+        }
     }
     private fun hideProgress() {
         binding.progressBar2.visibility = View.GONE

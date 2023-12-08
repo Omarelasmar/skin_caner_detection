@@ -17,4 +17,9 @@
     <string name="benign_cancer">Benign Cancer</string>
     <string name="loading_model">Loading model...</string>
     <string name="restart_the_app_to_reload_the_model">Restart the app to reload the model</string>
+    <string name="cancel">Cancel</string>
+    <string name="send">Send</string>
+    <string name="reset_password">Reset Password</string>
+    <string name="we_will_send_you_the_password_reset_link_to_your_email">We will send you the password reset link to your email</string>
+    <string name="logout">Logout</string>
 </resources>
